@@ -6,6 +6,7 @@ import categoryRouter from "./router/categoryRouter.js";
 import productRouter from "./router/productRoute.js";
 import userRouter from "./router/userRouter.js";
 import cartRouter from "./router/cartRouter.js";
+import orderRouter from "./router/orderRouter.js";
 
 dotenv.config();
 
@@ -34,6 +35,9 @@ app.use("/api/product", productRouter);
 
 // Cart routes
 app.use("/api/cart",cartRouter);
+
+//Order routes
+app.use("/api/order",orderRouter);
 
 // Root route
 app.get("/", (req, res) => {
