@@ -33,13 +33,21 @@ const addProduct = async (req,res)=>{
 // Lấy danh sách sản phẩm (có thể lọc theo danh mục)
 const getListProduct = async(req,res)=>{
     try {
+
+        // let params = [];
+        // params.sortField = 'name';
+        // params.sortType = 'asc';
+        let sortField = req.query.sortField || 'name';
+        let sortType = req.query.sortType || 'asc';
+
+
         const category = req.query.category;
         let products;
         if(category && category !== 'All' ){
-            products = await productModel.find({category});
+            products = await productModel.find({category}).sort({[sortField]:sortType});
         }
         else{
-            products = await productModel.find({});
+            products = await productModel.find({}).sort({[sortField]:sortType});
         }
         // const productList = await productModel.find({});
         res.json({success:true,data:products});
@@ -49,7 +57,7 @@ const getListProduct = async(req,res)=>{
     }
 }
 
-// Lấy sản phẩm và danh mục sản phẩm đó
+// Lấy sản phẩm và danh mục sản phẩm đó dựa theo mã id
 const getProductCat = async(req,res)=>{
     try {
         const products = await productModel.findById(req.params.id).populate('category');
@@ -62,17 +70,43 @@ const getProductCat = async(req,res)=>{
 // Update sản phẩm
 const updateProduct = async(req,res)=>{
     try {
-        const { id } = req.params;
-        const product = await productModel.findByIdAndUpdate(id,req.body);
+        const {id} = req.params;
+        let product = await productModel.findById(id);
+
         if(!product){
-            res.status(400).json({message:`Không tìm thấy sản phẩm với ID ${id}`});
+            return res.status(400).json({message:`Không tìm thấy sản phẩm  với id ${id}`});
         }
-        else{
-            res.json({success:true,message:"Update sản phẩm thành công!"});
+        //Kiểm tra nếu ID danh mục mới hợp lệ
+        if(req.body.category){
+            const category = await categoryModel.findById(req.body.category);
+            if(!category){
+                return res.status(400).json({message:"Danh mục không hợp lệ"});
+            }
         }
+
+        const updateData = {
+            name: req.body.name,
+            category: req.body.category,
+            price: req.body.price,
+            description: req.body.description
+        };
+        if(req.file){
+            //xóa hình ảnh cũ
+            fs.unlink(`upload/${product.image}`,(err)=>{
+                if(err){
+                    console.log("Lỗi khi xóa ảnh", err);
+                }
+            });
+            //Cập nhập tên file hình ảnh mới
+            updateData.image = req.file.filename;
+        }
+
+        //Cập nhập sản phẩm mới
+        product = await productModel.findByIdAndUpdate(id, updateData, {new: true});
+        res.json({success: true,message:"Update sản phẩm thành công" ,data: product})
     } catch (error) {
         console.log(error);
-        res.json({success:false,message:"Update sản phẩm thất bại!"});
+        res.json({success:false, message:"Update sản phẩm thất bại!"});
     }
 }
 

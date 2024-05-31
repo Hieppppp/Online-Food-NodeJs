@@ -103,6 +103,40 @@ const listOrders = async (req,res) => {
         res.json({success:false,message:"Error"});
     }
 }
+//Cập nhập trạng thái đơn hàng
+const updateStatus = async (req,res)=>{
+    try {
+        await orderModel.findByIdAndUpdate(req.body.orderId,{status:req.body.status});
+        res.json({success:true,message:"Cập nhập trạng thái thành công"});
+    } catch (error) {
+        console.log(error);
+        res.json({success:false, message:"Error"});
+    }
+}
+//xem chi tiết đơn hàng
+const getOrderId = async (req,res) => {
+    try {
+        const orderId = await orderModel.findById(req.params.id);
+        if(!orderId){
+            return res.json({success:false, message:"Không tim thấy đơn hàng"});
+        } 
+        res.json({success:true, data:orderId});
+    } catch (error) {
+        console.log(error);
+        res.json({success:false, message:"Error"});
+    }
+}
+//Xem chi tiết đơn hàng dựa theo mã id người dùng
+const getOrderDetailByUserId = async (req, res) => {
+    try {
+        const orders = await orderModel.find({userId:req.params.userId});
+        res.json({success:true, data:orders});
+    } catch (error) {
+        console.log(error);
+        res.json({success:false, message:"Error"});
+    }
+}
 
 
-export {placeOrder,verifyOrder,userOrders,listOrders}
+
+export {placeOrder,verifyOrder,userOrders,listOrders,updateStatus, getOrderId, getOrderDetailByUserId}

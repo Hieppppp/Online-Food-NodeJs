@@ -5,6 +5,7 @@ import Category from './pages/Category/manageCategory'
 import Product from './pages/Product/manageProduct'
 import { Route, Routes } from 'react-router-dom'
 import { ToastContainer } from 'react-toastify'
+import Order from './pages/Orders/Order'
 
 const App = () => {
 
@@ -19,6 +20,7 @@ const App = () => {
         <Routes>
             <Route path='/managecategory' element={<Category url={url}/>}/>
             <Route path='/manageproduct' element={<Product url={url}/>}/>
+            <Route path='/manageorder' element={<Order url={url}/>}/>
         </Routes>
       </div>
     </div>
