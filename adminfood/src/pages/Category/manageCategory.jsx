@@ -1,17 +1,21 @@
 import React, { useState, useRef, useEffect } from 'react';
 import './category.css';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faPlus, faFloppyDisk, faTrashAlt, faSearch } from '@fortawesome/free-solid-svg-icons';
+import { faPlus, faTrashAlt, faSearch, faPen } from '@fortawesome/free-solid-svg-icons';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { assets } from '../../assets/assets';
 import Navar from '../../components/Navar/Navar';
+import { useParams } from 'react-router-dom';
 
-const manageCategory = ({ url }) => {
+const ManageCategory = ({ url }) => {
     const [list, setList] = useState([]);
-    // Thêm state itemsToShow để lưu trữ số lượng danh mục cần hiển thị
     const [itemsToShow, setItemsToShow] = useState(5);
+    const [searchQuery, setSearchQuery] = useState('');
+    const [modalData, setModalData] = useState({ name: '', image: null });
+    const [image, setImage] = useState(null);
+    const params = useParams();
     const modalRef = useRef(null);
 
     const fetchList = async () => {
@@ -27,27 +31,37 @@ const manageCategory = ({ url }) => {
         }
     };
 
-    const [image, setImage] = useState(false);
-    const [data, setData] = useState({ name: "" });
+    const fetchById = async (categoryId) => {
+        try {
+            const response = await axios.get(`${url}/api/category/getbycategory`, { id: categoryId });
+            if (response.data.success) {
+                setModalData(response.data.data);
+            }
+        } catch (error) {
+            console.log(error);
+        }
+    };
 
     const onChangeHandler = (event) => {
         const { name, value } = event.target;
-        setData(data => ({ ...data, [name]: value }));
+        setModalData(data => ({ ...data, [name]: value }));
     };
 
     const onSubmitHandler = async (event) => {
         event.preventDefault();
         const formData = new FormData();
-        formData.append("name", data.name);
-        formData.append("image", image);
+        formData.append("name", modalData.name);
+        if (image) {
+            formData.append("image", image);
+        }
 
         try {
-            const response = await axios.post(`${url}/api/category/add`, formData);
+            const response = await axios.post(`${url}/api/category/update`, formData);
             if (response.data.success) {
-                setData({ name: "" });
-                setImage(false);
+                setModalData({ name: '', image: null });
+                setImage(null);
                 await fetchList();
-                toast.success(response.data.message,{ autoClose: 1500 });
+                toast.success(response.data.message, { autoClose: 1500 });
 
                 // Đóng modal lại
                 const modal = modalRef.current;
@@ -58,28 +72,41 @@ const manageCategory = ({ url }) => {
                     }
                 }
             } else {
-                toast.error(response.data.message,{ autoClose: 1500 });
+                toast.error(response.data.message, { autoClose: 1500 });
             }
         } catch (error) {
             toast.error("Error");
         }
     };
 
-    const removeCategory = async (categoryId)=>{
-        const response = await axios.post(`${url}/api/category/deleteCategory`,{id:categoryId});
+    const updateCategory = async(categoryId)=>{
+        const response = await axios.put(`${url}/api/category/updatecategory`, { id: categoryId });
         await fetchList();
-        if(response.data.success){
-            toast.success(response.data.message,{ autoClose: 1500 });
-        }
-        else{
+        if (response.data.success) {
+            toast.success(response.data.message, { autoClose: 1500 });
+        } else {
             toast.error("Error");
         }
-    }
+    };
 
-    // Hàm handleSelectChange để cập nhập state itemsToShow khi người dùng thay đổi lựa chọn
-    const handleSelectChange = (event) =>{
+    const removeCategory = async (categoryId) => {
+        const response = await axios.post(`${url}/api/category/deleteCategory`, { id: categoryId });
+        await fetchList();
+        if (response.data.success) {
+            toast.success(response.data.message, { autoClose: 1500 });
+        } else {
+            toast.error("Error");
+        }
+    };
+
+    const handleSelectChange = (event) => {
         setItemsToShow(Number(event.target.value));
-    }
+    };
+
+    const handleEditClick = (category) => {
+        setModalData(category);
+        setImage(null); // Reset image preview
+    };
 
     useEffect(() => {
         fetchList();
@@ -88,15 +115,9 @@ const manageCategory = ({ url }) => {
     return (
         <>
             <div className='main'>
-                <Navar/>
+                <Navar />
                 <div className='container'>
                     <div className='model-header'>
-                        {/* <div class="col-3">
-                            <select name="category_id" id="category_id" class="form-control">
-                                <option value="0">Tất cả nhóm</option>
-                                <option>hahhah</option>
-                            </select>
-                        </div> */}
                         <div>
                             <button type="button" data-bs-toggle="modal" data-bs-target="#addCategoryModal">
                                 <FontAwesomeIcon className='icon' icon={faPlus} />
@@ -128,7 +149,13 @@ const manageCategory = ({ url }) => {
                                     <div className="iconContainer">
                                         <FontAwesomeIcon className='search' icon={faSearch} />
                                     </div>
-                                    <input className="search_input" placeholder="Search..." type="text" />
+                                    <input
+                                        className="search_input"
+                                        placeholder="Search..."
+                                        type="text"
+                                        value={searchQuery}
+                                        onChange={(e) => setSearchQuery(e.target.value)}
+                                    />
                                 </div>
                             </div>
                         </div>
@@ -142,18 +169,24 @@ const manageCategory = ({ url }) => {
                                 </tr>
                             </thead>
                             <tbody>
-                                {/* list.slice(0,itemsToShow) để cắt danh sách hiển thị dựa trên số lượng danh mục hiển thị */}
-                                {list.slice(0, itemsToShow).map((item, index) => (
-                                    <tr key={index}>
-                                        <th scope="row">{index + 1}</th>
-                                        <td>{item.name}</td>
-                                        <td><img style={{ height: '50px', width: '80px' }} className='img-fluid' src={`${url}/images/${item.image}`} alt="" /></td>
-                                        <td>
-                                            <p className='edit-icon' data-bs-toggle="model" data-bs-target="#edit"><FontAwesomeIcon className='icon' icon={faFloppyDisk} /></p>
-                                            <p className='cusor' onClick={()=>removeCategory(item._id)}><FontAwesomeIcon className='icon' icon={faTrashAlt} /></p>
-                                        </td>
-                                    </tr>
-                                ))}
+                                {list
+                                    .filter(category => category.name.toLowerCase().includes(searchQuery.toLowerCase()))
+                                    .slice(0, itemsToShow)
+                                    .map((item, index) => (
+                                        <tr key={index}>
+                                            <th scope="row">{index + 1}</th>
+                                            <td>{item.name}</td>
+                                            <td><img style={{ height: '50px', width: '80px' }} className='img-fluid' src={`${url}/images/${item.image}`} alt="" /></td>
+                                            <td>
+                                                <p className='edit-icon' data-bs-toggle="modal" data-bs-target="#editCategoryModal" onClick={() => handleEditClick(item)}>
+                                                    <FontAwesomeIcon className='icon' icon={faPen} />
+                                                </p>
+                                                <p className='cusor' onClick={() => removeCategory(item._id)}>
+                                                    <FontAwesomeIcon className='icon' icon={faTrashAlt} />
+                                                </p>
+                                            </td>
+                                        </tr>
+                                    ))}
                             </tbody>
                         </table>
                         <div className='page'>
@@ -179,14 +212,14 @@ const manageCategory = ({ url }) => {
                             <div className="modal-body">
                                 <div className="mb-3">
                                     <p>Tên danh mục</p>
-                                    <input onChange={onChangeHandler} type="text" className='form-control' name='name' value={data.name} />
+                                    <input onChange={onChangeHandler} type="text" className='form-control' name='name' value={modalData.name} />
                                 </div>
                                 <div className="mb-3 add-img-upload flex-col">
                                     <p>Upload hình ảnh</p>
                                     <label htmlFor="image">
                                         <img src={image ? URL.createObjectURL(image) : assets.upload_area} alt="" />
                                     </label>
-                                    <input onChange={(e) => setImage(e.target.files[0])} type='file' id='image' hidden required />
+                                    <input onChange={(e) => setImage(e.target.files[0])} type='file' id='image' hidden />
                                 </div>
                             </div>
                             <div className="modal-footer">
@@ -197,8 +230,38 @@ const manageCategory = ({ url }) => {
                     </div>
                 </div>
             </div>
+
+            {/* Model Update Danh Mục */}
+            <div className="modal fade" id="editCategoryModal" tabIndex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true" ref={modalRef}>
+                <div className="modal-dialog">
+                    <div className="modal-content">
+                        <form onSubmit={onSubmitHandler}>
+                            <div className="modal-header">
+                                <h5 className="modal-title" id="exampleModalLabel">Update danh mục</h5>
+                            </div>
+                            <div className="modal-body">
+                                <div className="mb-3">
+                                    <p>Tên danh mục</p>
+                                    <input onChange={onChangeHandler} type="text" className='form-control' name='name' value={modalData.name} />
+                                </div>
+                                <div className="mb-3 add-img-upload flex-col">
+                                    <p>Upload hình ảnh</p>
+                                    <label htmlFor="image">
+                                        <img src={image ? URL.createObjectURL(image) : `${url}/images/${modalData.image}`} alt="" />
+                                    </label>
+                                    <input onChange={(e) => setImage(e.target.files[0])} type='file' id='image' hidden />
+                                </div>
+                            </div>
+                            <div className="modal-footer">
+                                <button type="button" className="btn btn-danger" data-bs-dismiss="modal">Hủy</button>
+                                <button type="submit" className="btn btn-primary">Update</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
         </>
     );
 }
 
-export default manageCategory;
+export default ManageCategory;

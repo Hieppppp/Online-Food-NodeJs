@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import Navar from '../../components/Navar/Navar';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faPlus, faFloppyDisk, faTrashAlt, faSearch } from '@fortawesome/free-solid-svg-icons';
+import { faPlus, faTrashAlt, faSearch, faPen } from '@fortawesome/free-solid-svg-icons';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -89,6 +89,7 @@ const ManageProduct = ({ url }) => {
         }
     };
 
+
     const fetchCategories = async () => {
         try {
             const response = await axios.get(`${url}/api/category/getCategory`);
@@ -120,6 +121,11 @@ const ManageProduct = ({ url }) => {
         setItemsToShow(Number(event.target.value));
     }
 
+    const handleEditClick = (product) => {
+        setModalData(product);
+        setImage(null); // Reset image preview
+    };
+
     useEffect(() => {
         fetchList();
         fetchCategories();
@@ -131,8 +137,8 @@ const ManageProduct = ({ url }) => {
                 <Navar />
                 <div className='container'>
                     <div className='model-header'>
-                        <div class="col-3">
-                            <select name="category_id" id="category_id" class="form-control">
+                        <div className="col-3">
+                            <select name="category_id" id="category_id" className="form-control">
                                 <option value="0">Tất cả nhóm</option>
                                 {categories.map((category) => (
                                     <option key={category._id} value={category._id}>{category.name}</option>
@@ -196,7 +202,7 @@ const ManageProduct = ({ url }) => {
                                         <td>{item.price}.000</td>
                                         <td>{item.description}</td>
                                         <td>
-                                            <p className='edit-icon' data-bs-toggle="model" data-bs-target="#edit"><FontAwesomeIcon className='icon' icon={faFloppyDisk} /></p>
+                                            <p className='edit-icon' data-bs-toggle="modal" data-bs-target="#editCategoryModal"><FontAwesomeIcon className='icon' icon={faPen} /></p>
                                             <p className='cusor' onClick={() => removeProduct(item._id)}><FontAwesomeIcon className='icon' icon={faTrashAlt} /></p>
                                         </td>
                                     </tr>
@@ -269,6 +275,57 @@ const ManageProduct = ({ url }) => {
             </div>
 
             {/* Model edit sản phẩm */}
+            <div className="modal fade" id="editCategoryModal" tabIndex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true" ref={modalRef}>
+                <div className="modal-dialog modal-lg">
+                    <div className="modal-content">
+                        <form onSubmit={onSubmitHandler}>
+                            <div className="modal-header">
+                                <h5 className="modal-title" id="exampleModalLabel">Update Sản Phẩm</h5>
+                            </div>
+                            <div className="modal-body">
+                                <div className='row'>
+                                    <div className='form-group col-md-6 mb-3'>
+                                        <label htmlFor="name">Tên sản phẩm</label>
+                                        <input onChange={onChangeHandler} value={name} type="text" className='form-control' name='name' />
+                                    </div>
+                                    <div className='form-group col-md-6 mb-3'>
+                                        <label htmlFor="category">Danh mục</label>
+                                        <select name="category" id="category" value={selectedCategory} onChange={handleCategoryChange} className='form-control'>
+                                            <option value="">Chọn loại sản phẩm</option>
+                                            {categories.map((category) => (
+                                                <option key={category._id} value={category._id}>{category.name}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                    <div className='form-group col-md-6 mb-3'>
+                                        <label htmlFor="price">Giá cả</label>
+                                        <input onChange={onChangeHandler} value={data.price} type="number" className='form-control' name='price' />
+                                    </div>
+                                    <div className='form-group col-md-6 mb-3'>
+                                        <label htmlFor="dateCreate">Ngày Tạo</label>
+                                        <input onChange={onChangeHandler} value={data.dateCreate} type="date" className='form-control' name='dateCreate' />
+                                    </div>
+                                </div>
+                                <div className="mb-3">
+                                    <p>Mô tả</p>
+                                    <textarea onChange={onChangeHandler} value={data.description} name='description' className='form-control' rows={5} />
+                                </div>
+                                <div className="mb-3 add-img-upload flex-col">
+                                    <p>Upload hình ảnh</p>
+                                    <label htmlFor="image">
+                                        <img src={image ? URL.createObjectURL(image) : assets.upload_area} alt="" />
+                                    </label>
+                                    <input onChange={(e) => setImage(e.target.files[0])} type='file' id='image' hidden />
+                                </div>
+                            </div>
+                            <div className="modal-footer">
+                                <button type="button" className="btn btn-danger" data-bs-dismiss="modal">Hủy</button>
+                                <button type="submit" className="btn btn-primary">Update</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
         </>
     );
 };

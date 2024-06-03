@@ -1,5 +1,6 @@
 import path from "path";
 import categoryModel from "../models/categoryModel.js";
+import { paginationCategory } from "../services/categoryServices.js";
 import fs from 'fs';
 
 //thêm loại danh mục
@@ -21,14 +22,47 @@ const addCategory = async(req,res)=>{
 //Lấy danh mục
 const getCategory = async(req,res)=>{
     try {
-        const category = await categoryModel.find({});
-        res.json({success:true,data:category});
+        if(req.query.page && req.query.limit){
+            let page = parseInt(req.query.page);
+            let limit = parseInt(req.query.limit);
+
+            const categoryData  = await paginationCategory(page, limit);
+            res.json({success:true,data:categoryData });
+
+            console.log("check ket qua:", 'page=',page, 'limit= ',limit);
+        }
+        else{
+            const category = await categoryModel.find({});
+            res.json({success:true,data:category});
+        }
     } catch (error) {
         console.log(error);
         res.json({success:false,message:"Không lấy được danh mục sản phẩm!"});
     }
 }
+// Lấy danh mục theo mã ID
+const getByCategory = async (req,res)=>{
+    try {
+        const categories = await categoryModel.findOne({_id: req.params.id});
+        res.json({success:true, data:categories});
+    } catch (error) {
+        console.log(error);
+        res.json({success:false, message:"Error"});
+    }
+}
 //Update danh mục sản phẩm
+const updateCategory = async (req,res) => {
+    try {
+        const response = await categoryModel.updateOne(
+            {_id: req.params.id},
+            {$set:req.body}
+        );
+        res.json({success:true,message:"Update thành công",data:response});
+
+    } catch (error) {
+        console.log(error);
+    }
+}
 
 //Xóa danh mục sản phẩm theo mã id
 const deleteCategory = async (req,res)=>{
@@ -43,27 +77,6 @@ const deleteCategory = async (req,res)=>{
     }
 }
 
-const paginationCategory = async (req, res, next) => {
-    try {
-        let perPage = 5; // số lượng sản phẩm trên 1 trang
-        let page = parseInt(req.params.page) || 1;
 
-        const categories = await categoryModel
-            .find() // find all data
-            .skip((perPage * page) - perPage) // trang đầu tiên sẽ loại bỏ giá trị là 0
-            .limit(perPage);
 
-        const count = await categoryModel.countDocuments(); // đếm để tính có bao nhiêu trang
-
-        res.json({
-            categories, // dữ liệu data
-            currentPage: page, // số trang hiện tại
-            totalPages: Math.ceil(count / perPage), // Tổng số trang
-            totalItems: count // Tổng số sản phẩm
-        });
-    } catch (error) {
-        next(error); // Báo lỗi
-    }
-};
-
-export {addCategory,getCategory,deleteCategory,paginationCategory};
+export {addCategory,getCategory,deleteCategory,getByCategory,updateCategory};

@@ -1,6 +1,6 @@
 import express from 'express';
 import multer from 'multer';
-import { addCategory, deleteCategory, getCategory, paginationCategory } from '../controllers/categoryController.js';
+import { addCategory, deleteCategory, getByCategory, getCategory, updateCategory} from '../controllers/categoryController.js';
 
 //Khởi tạo Router
 const categoryRouter = express.Router();
@@ -16,7 +16,8 @@ const storage = multer.diskStorage({
 const upload = multer({storage:storage});
 categoryRouter.post("/add",upload.single('image'),addCategory);
 categoryRouter.get("/getCategory",getCategory);
-categoryRouter.get("/send/:page",paginationCategory);
 categoryRouter.post("/deleteCategory",deleteCategory);
+categoryRouter.get("/getbycategory/:id",getByCategory);
+categoryRouter.put("/updatecategory/:id",updateCategory);
 
 export default categoryRouter;
