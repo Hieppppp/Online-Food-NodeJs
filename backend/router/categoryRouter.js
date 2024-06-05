@@ -18,6 +18,6 @@ categoryRouter.post("/add",upload.single('image'),addCategory);
 categoryRouter.get("/getCategory",getCategory);
 categoryRouter.post("/deleteCategory",deleteCategory);
 categoryRouter.get("/getbycategory/:id",getByCategory);
-categoryRouter.put("/updatecategory/:id",updateCategory);
+categoryRouter.put("/updatecategory/:id",upload.single('image'), updateCategory);
 
 export default categoryRouter;

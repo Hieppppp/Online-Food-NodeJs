@@ -28,8 +28,6 @@ const getCategory = async(req,res)=>{
 
             const categoryData  = await paginationCategory(page, limit);
             res.json({success:true,data:categoryData });
-
-            console.log("check ket qua:", 'page=',page, 'limit= ',limit);
         }
         else{
             const category = await categoryModel.find({});
@@ -51,18 +49,32 @@ const getByCategory = async (req,res)=>{
     }
 }
 //Update danh mục sản phẩm
-const updateCategory = async (req,res) => {
+const updateCategory = async (req, res) => {
     try {
-        const response = await categoryModel.updateOne(
-            {_id: req.params.id},
-            {$set:req.body}
-        );
-        res.json({success:true,message:"Update thành công",data:response});
+        const id = req.params.id;
+        const categoryExist = await categoryModel.findOne({_id: id});
 
+        if (!categoryExist) {
+            return res.status(404).json({message: "Category Not Found."});
+        }
+
+        // Prepare the update object
+        let updateData = { ...req.body };
+        
+        // If a new image is uploaded, add the filename to the update object
+        if (req.file) {
+            updateData.image = req.file.filename;
+        }
+
+        const updatedCategory = await categoryModel.findByIdAndUpdate(id, updateData, { new: true });
+
+        res.status(201).json({success: true, message: "Update thành công", data: updatedCategory});
     } catch (error) {
         console.log(error);
+        res.json({ success: false, message: "Update thất bại" });
     }
 }
+
 
 //Xóa danh mục sản phẩm theo mã id
 const deleteCategory = async (req,res)=>{
