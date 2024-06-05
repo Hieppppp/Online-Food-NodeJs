@@ -6,6 +6,7 @@ import axios from 'axios';
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { assets } from '../../assets/assets';
+import ReactPaginate from 'react-paginate';
 
 
 const ManageProduct = ({ url }) => {
@@ -15,7 +16,10 @@ const ManageProduct = ({ url }) => {
     const [image, setImage] = useState(null);
     const modalRef = useRef(null);
     // Thêm state itemsToShow để lưu trữ số lượng sản phẩm cần lưu trữ
-    const[itemsToShow,setItemsToShow] = useState (5);
+    const [itemsToShow, setItemsToShow] = useState(5);
+    const [currentPage, setCurrentPage] = useState(1);
+    const [currentLimit, setCurrentLimit] = useState(itemsToShow);
+    const [totalPages, setTotalPages] = useState(0);
     const [data, setData] = useState({
         name: "",
         category: "",
@@ -34,6 +38,7 @@ const ManageProduct = ({ url }) => {
         setData(prevData => ({ ...prevData, category: e.target.value }));
     };
 
+    // Thêm sản phẩm
     const onSubmitHandler = async (event) => {
         event.preventDefault();
         const formData = new FormData();
@@ -75,12 +80,13 @@ const ManageProduct = ({ url }) => {
             toast.error("Lỗi khi thêm sản phẩm");
         }
     };
-
-    const fetchList = async () => {
+    // Hiển thị danh sách sản phẩm
+    const fetchList = async (page, limit) => {
         try {
-            const response = await axios.get(`${url}/api/product/listProduct`);
+            const response = await axios.get(`${url}/api/product/listProduct?page=${page}&limit=${limit}`);
             if (response.data.success) {
-                setList(response.data.data);
+                setList(response.data.data.products);
+                setTotalPages(response.data.data.totalPages);
             } else {
                 toast.error("Lỗi khi load dữ liệu");
             }
@@ -88,8 +94,7 @@ const ManageProduct = ({ url }) => {
             toast.error("Loading...");
         }
     };
-
-
+    // Hiển thị tên danh mục
     const fetchCategories = async () => {
         try {
             const response = await axios.get(`${url}/api/category/getCategory`);
@@ -102,7 +107,7 @@ const ManageProduct = ({ url }) => {
             toast.error("Loading...");
         }
     };
-
+    // Xóa sản phẩm
     const removeProduct = async (productId) => {
         try {
             const response = await axios.post(`${url}/api/product/deleteProduct`, { id: productId });
@@ -117,9 +122,18 @@ const ManageProduct = ({ url }) => {
         }
     };
     //Hàm handleSelectChange để cập nhập state itemsToShow khi ta thay đổi lựa chon
-    const handleSelectChange = (event) =>{
-        setItemsToShow(Number(event.target.value));
-    }
+    const handleSelectChange = (event) => {
+        const newItemsToShow = Number(event.target.value);
+        setItemsToShow(newItemsToShow);
+        setCurrentLimit(newItemsToShow);
+        fetchList(1, newItemsToShow);
+    };
+    // Sự kiện Onclick phân trang
+    const handlePageClick = (event) => {
+       const selectedPage = event.selected + 1;
+       setCurrentPage(selectedPage);
+       fetchList(selectedPage, currentLimit);
+    };
 
     const handleEditClick = (product) => {
         setModalData(product);
@@ -127,9 +141,9 @@ const ManageProduct = ({ url }) => {
     };
 
     useEffect(() => {
-        fetchList();
+        fetchList(currentPage, currentLimit);
         fetchCategories();
-    }, []);
+    }, [currentPage, currentLimit]);
 
     return (
         <>
@@ -159,7 +173,7 @@ const ManageProduct = ({ url }) => {
                     <hr />
                     <div className='model-body'>
                         <div className='model-tools'>
-                            <label>
+                        <label>
                                 Hiện thị
                                 <select onChange={handleSelectChange} value={itemsToShow}>
                                     <option value="5">5</option>
@@ -168,7 +182,7 @@ const ManageProduct = ({ url }) => {
                                     <option value="50">50</option>
                                     <option value="100">100</option>
                                 </select>
-                                sản phẩm
+                                danh mục
                             </label>
                             <div className="search-container">
                                 <input className="checkbox" type="checkbox" />
@@ -193,7 +207,7 @@ const ManageProduct = ({ url }) => {
                                 </tr>
                             </thead>
                             <tbody>
-                                {list.slice(0,itemsToShow).map((item, index) => (
+                                {list.slice(0, itemsToShow).map((item, index) => (
                                     <tr key={index} className='align-middle'>
                                         <th scope="row">{index + 1}</th>
                                         <td>{item.name}</td>
@@ -210,12 +224,26 @@ const ManageProduct = ({ url }) => {
                             </tbody>
                         </table>
                         <div className='page'>
-                            <label>
-                                Trang
-                                <select>
-                                    <option value="">Trang</option>
-                                </select>
-                            </label>
+                            <ReactPaginate
+                                nextLabel="Sau >"
+                                onPageChange={handlePageClick}
+                                pageRangeDisplayed={2}
+                                marginPagesDisplayed={1}
+                                pageCount={totalPages}
+                                previousLabel="< Trước"
+                                pageClassName="page-item"
+                                pageLinkClassName="page-link"
+                                previousClassName="page-item"
+                                previousLinkClassName="page-link"
+                                nextClassName="page-item"
+                                nextLinkClassName="page-link"
+                                breakLabel="..."
+                                breakClassName="page-item"
+                                breakLinkClassName="page-link"
+                                containerClassName="pagination"
+                                activeClassName="active"
+                                renderOnZeroPageCount={null}
+                            />
                         </div>
                     </div>
                 </div>
