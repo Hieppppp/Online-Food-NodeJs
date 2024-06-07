@@ -75,7 +75,6 @@ const updateCategory = async (req, res) => {
     }
 }
 
-
 //Xóa danh mục sản phẩm theo mã id
 const deleteCategory = async (req,res)=>{
     try {
@@ -88,7 +87,18 @@ const deleteCategory = async (req,res)=>{
         res.json({success:false,message:"Error"});
     }
 }
+//Xóa tất cả
+const deleteMultipeCategory = async (req,res)=> {
+    try {
+        const {ids} = req.body;
+        await categoryModel.deleteMany({_id: {$in: ids}});
+        res.status(200).json({success:true,message:"Xóa sản phẩm thành công!"});
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({success:false, message:"Lỗi khi xóa danh mục", error});
+    }
+}
 
 
 
-export {addCategory,getCategory,deleteCategory,getByCategory,updateCategory};
+export {addCategory,getCategory,deleteCategory,getByCategory,updateCategory,deleteMultipeCategory};

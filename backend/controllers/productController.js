@@ -1,7 +1,7 @@
 import categoryModel from "../models/categoryModel.js";
 import productModel from "../models/productModel.js";
 import orderModel from "../models/orderModel.js";
-import { paginationProduct, getTopSellingProducts } from "../services/productServices.js";
+import { paginationProduct } from "../services/productServices.js";
 import fs from 'fs';
 
 //Thêm sản phẩm
@@ -84,11 +84,11 @@ const getProductCat = async (req, res) => {
 // Update sản phẩm
 const updateProduct = async (req, res) => {
     try {
-        const { id } = req.params;
-        let product = await productModel.findById(id);
+        const id = req.params.id
+        const productExist = await productModel.findOne({_id: id});
 
-        if (!product) {
-            return res.status(400).json({ message: `Không tìm thấy sản phẩm  với id ${id}` });
+        if(!productExist){
+            return res.status(404).json({message:"Product Not Found!"});
         }
         //Kiểm tra nếu ID danh mục mới hợp lệ
         if (req.body.category) {
@@ -98,15 +98,10 @@ const updateProduct = async (req, res) => {
             }
         }
 
-        const updateData = {
-            name: req.body.name,
-            category: req.body.category,
-            price: req.body.price,
-            description: req.body.description
-        };
+        let updateData = {...req.body};
         if (req.file) {
             //xóa hình ảnh cũ
-            fs.unlink(`upload/${product.image}`, (err) => {
+            fs.unlink(`upload/${productExist.image}`, (err) => {
                 if (err) {
                     console.log("Lỗi khi xóa ảnh", err);
                 }
@@ -116,8 +111,9 @@ const updateProduct = async (req, res) => {
         }
 
         //Cập nhập sản phẩm mới
-        product = await productModel.findByIdAndUpdate(id, updateData, { new: true });
-        res.json({ success: true, message: "Update sản phẩm thành công", data: product })
+        const updateProduct = await productModel.findByIdAndUpdate(id, updateData, {new: true});
+        res.status(201).json({success: true, message:"Update thành công", data:updateProduct});
+       
     } catch (error) {
         console.log(error);
         res.json({ success: false, message: "Update sản phẩm thất bại!" });
@@ -141,6 +137,17 @@ const deleteProduct = async (req, res) => {
         res.json({ success: false, message: "Lỗi khi xóa sản phẩm!" });
     }
 }
+//Xóa tất cả sản phẩm
+const deleteMultipleProduct = async (req,res) => {
+    try {
+        const {ids} = req.body;
+        await productModel.deleteMany({_id:{$in: ids}});
+        res.status(200).json({success:true, message:"Xóa sản phẩm thành công"});
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({success:false,message:"Lỗi khi xóa sản phẩm", error});
+    }
+}
 
 const getProductByCategory = async (req, res) => {
     try {
@@ -162,7 +169,7 @@ const getProductByCategory = async (req, res) => {
         res.json({ success: false, message: "Lỗi không load được dữ liệu!" });
     }
 }
-
+// Tìm kiếm sản phẩm
 const listProduct = async (req, res) => {
     try {
         const pageSize = 5;
@@ -224,7 +231,7 @@ const getTopSellingProductsAPI = async (req, res) => {
                 }
             },
             { $sort: { totalQuantity: -1 } }, // Sắp xếp theo tổng số lượng bán (giảm dần)
-            { $limit: 8 }
+            { $limit: 3 }
         ]);
 
         // Tùy chọn, điền thông tin sản phẩm bổ sung
@@ -246,6 +253,7 @@ export {
     getProductCat,
     updateProduct,
     deleteProduct,
+    deleteMultipleProduct,
     getProductByCategory,
     listProduct,
     getTopSellingProductsAPI,

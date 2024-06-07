@@ -15,9 +15,10 @@ const ManageCategory = ({ url }) => {
     const [currentPage, setCurrentPage] = useState(1);
     const [currentLimit, setCurrentLimit] = useState(itemsToShow);
     const [totalPages, setTotalPages] = useState(0);
-    const modalRef = useRef(null);
     const [data, setData] = useState({ name: "", id: "" });
     const [image, setImage] = useState(null);
+    const [selectCategory, setSelectCategory] = useState([]);
+    const modalRef = useRef(null);
 
     // Hiển hị dữ liệu ra danh sách
     const fetchList = async (page, limit) => {
@@ -99,7 +100,7 @@ const ManageCategory = ({ url }) => {
             }
         } catch (error) {
             console.error(error);
-            toast.error("Error updating category.");
+            toast.error("Error updating category.",{autoClose: 1500});
         }
     };
 
@@ -132,6 +133,33 @@ const ManageCategory = ({ url }) => {
         setData({ name: category.name, id: category._id });
         setImage(null);
     }
+    // Sự hiện onclick xóa danh mục khi chọn lọc
+    const handleCheckboxChange = (event,id) => {
+        if(event.target.checked){
+            setSelectCategory([...selectCategory,id]);
+        }
+        else{
+            selectCategory(selectCategory.filter(categoryId=>categoryId !== id));
+        }
+    }
+    // Xóa danh mục (delete-multiple)
+    const handleDeleteSelected = async () => {
+        try {
+            const response = await axios.delete(`${url}/api/category/delete-multiple`,{data:{ids:selectCategory}});
+            await fetchList(currentPage,currentLimit);
+            if(response.data.success){
+                setList((prevList)=> prevList.filter(item => !selectCategory.includes(item._id)));
+                setSelectCategory([]);
+                toast.success(response.data.message, { autoClose: 1500 });
+            }
+        } catch (error) {
+            console.error(error);
+            toast.error(response.data.message, {autoClose: 1500});
+        }
+
+    }
+
+
 
     useEffect(() => {
         fetchList(currentPage, currentLimit);
@@ -148,7 +176,7 @@ const ManageCategory = ({ url }) => {
                                 <FontAwesomeIcon className='icon' icon={faPlus} />
                                 <span>Thêm sản phẩm mới</span>
                             </button>
-                            <button>
+                            <button onClick={handleDeleteSelected}>
                                 <FontAwesomeIcon className='icon' icon={faTrashAlt} />
                                 <span>Xóa tất cả</span>
                             </button>
@@ -181,7 +209,10 @@ const ManageCategory = ({ url }) => {
                         <table className="table text-center table-striped">
                             <thead>
                                 <tr>
-                                    <th scope="col">#</th>
+                                    <th className='align-middle'>
+                                        <input className='form-check-input' type="checkbox" />
+                                    </th>
+                                    <th scope="col">STT</th>
                                     <th scope="col">Tên danh mục</th>
                                     <th scope="col">Hình ảnh</th>
                                     <th scope="col">Chức năng</th>
@@ -190,10 +221,13 @@ const ManageCategory = ({ url }) => {
                             <tbody>
                                 {list.slice(0, itemsToShow).map((item, index) => (
                                     <tr key={index}>
-                                        <th scope="row">{index + 1}</th>
-                                        <td>{item.name}</td>
-                                        <td><img style={{ height: '50px', width: '80px' }} className='img-fluid' src={`${url}/images/${item.image}`} alt="" /></td>
-                                        <td>
+                                        <th className='align-middle'>
+                                            <input className='form-check-input' type="checkbox" onChange={(e) => handleCheckboxChange(e,item._id)} />
+                                        </th>
+                                        <th scope="row" className='align-middle'>{index + 1}</th>
+                                        <td className='align-middle'>{item.name}</td>
+                                        <td className='align-middle'><img style={{ height: '50px', width: '80px' }} className='img-fluid' src={`${url}/images/${item.image}`} alt="" /></td>
+                                        <td className='align-middle'>
                                             <p className='edit-icon' id={item.id} name={item.name} data-bs-toggle="modal" data-bs-target="#editCategoryModal" onClick={() => handleEditClick(item)}><FontAwesomeIcon className='icon' icon={faPen} /></p>
                                             <p className='cusor' onClick={() => removeCategory(item._id)}><FontAwesomeIcon className='icon' icon={faTrashAlt} /></p>
                                         </td>
