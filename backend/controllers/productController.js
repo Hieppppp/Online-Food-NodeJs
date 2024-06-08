@@ -231,7 +231,7 @@ const getTopSellingProductsAPI = async (req, res) => {
                 }
             },
             { $sort: { totalQuantity: -1 } }, // Sắp xếp theo tổng số lượng bán (giảm dần)
-            { $limit: 3 }
+            { $limit: 8 }
         ]);
 
         // Tùy chọn, điền thông tin sản phẩm bổ sung
