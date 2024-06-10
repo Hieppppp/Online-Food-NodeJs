@@ -6,6 +6,26 @@ import dotenv from 'dotenv';
 import userModel from '../models/userModel.js';
 
 dotenv.config();
+// Get user
+const getUser = async (req, res) => {
+    try {
+        if (!req.user) {
+            return res.status(401).json({ success: false, message: "Not Authorized" });
+        }
+
+        const userId = req.user.id;
+        const user = await userModel.findById(userId);
+
+        if (!user) {
+            return res.status(404).json({ success: false, message: "User Not Found" });
+        }
+
+        res.status(200).json({ success: true, data: user });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ success: false, message: "Internal server error" });
+    }
+};
 // Login user
 const loginUser = async (req,res) => {
     const {email,password} = req.body;
@@ -29,7 +49,6 @@ const loginUser = async (req,res) => {
 const createToken = (id) =>{
     return jwt.sign({id},process.env.JWT_SECRECT);//Có thể đặt thời gian hết hạn token để sinh ra token mới{expriresIn:'7d'}
 }
-
 //Đăng ký tài khoản người dùng
 const resgisterUser = async (req,res) => {
     const { name, password, email} = req.body;
@@ -90,6 +109,36 @@ const resetPassword = async(req,res) => {
         
     }
 }
+// Update Password
+const updatePassword = async (req,res) => {
+    const { token, newPassword } = req.body;
+    try {
+        const decoded = jwt.verify(token, process.env.JWT_SECRECT);
+        const user = await userModel.findOne({
+            _id: decoded.id,
+            resetPasswordToken: token,
+            resetPasswordExpires: { $gt: Date.now()}
+        });
+        if(!user){
+            return res.status(400).json({ success: false, message:"Password reset token is invalid or has expired"});
+
+        }
+        if(newPassword.length < 8) {
+            return res.status(400).json({ success: false, message:"Password must be at less 8 charater"});
+        }
+
+        const salt = await bcrypt.genSalt(10);
+        user.password = await bcrypt.hash(newPassword, salt);
+        user.resetPasswordToken = undefined;
+        user.resetPasswordExpires = undefined;
+        await user.save();
+
+        res.json({success: true, message:"Password update successfully"});
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({success:false,message:"Interal server error"});
+    }
+}
 // for send email
 const sendverifyMail = async (name,email,user_id) => {
     try {
@@ -142,7 +191,7 @@ const sendResetPasswordToken = async (email, resetToken) => {
             html: `
                 <p>You are receiving this because you (or someone else) have requested the reset of the password for your account.</p>
                 <p>Please click on the following link, or paste this into your browser to complete the process:</p>
-                <p><a href="http://localhost:5173/reset-password/${resetToken}">Reset Password Link</a></p>
+                <p><a href="http://localhost:5173/myprofile/${resetToken}">Reset Password Link</a></p>
                 <p>If you did not request this, please ignore this email and your password will remain unchanged.</p>
             ` 
         };
@@ -154,4 +203,5 @@ const sendResetPasswordToken = async (email, resetToken) => {
     }
 }
 
-export {loginUser,resgisterUser}
+
+export {loginUser,resgisterUser,resetPassword,updatePassword,getUser}

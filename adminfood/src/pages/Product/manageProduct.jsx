@@ -19,6 +19,7 @@ const ManageProduct = ({ url }) => {
     const [currentLimit, setCurrentLimit] = useState(itemsToShow);
     const [totalPages, setTotalPages] = useState(0);
     const [selectedProduct, setSelectedProduct] = useState([]);
+    const [searchQuery, setSearchQuery] = useState("");
     const [data, setData] = useState({
         id: "",
         name: "",
@@ -61,12 +62,9 @@ const ManageProduct = ({ url }) => {
                     dateCreate: ""
                 });
                 setImage(false);
-                fetchList(); // Update product list after successful addition
+                await fetchList(currentPage,currentLimit); // Update product list after successful addition
                 toast.success(response.data.message, { autoClose: 1500 });
 
-                // // Close the modal
-                // const modal = new window.bootstrap.Modal(modalRef.current);
-                // modal.hide();
                 const model = modalRef.current;
                 if (model) {
                     const bootstrapModal = window.bootstrap.Modal.getInstance(model);
@@ -83,12 +81,27 @@ const ManageProduct = ({ url }) => {
         }
     };
     // Hiển thị danh sách sản phẩm
-    const fetchList = async (page, limit) => {
+    // const fetchList = async (page, limit) => {
+    //     try {
+    //         const response = await axios.get(`${url}/api/product/listProduct?page=${page}&limit=${limit}`);
+    //         if (response.data.success) {
+    //             setList(response.data.data.products);
+    //             setTotalPages(response.data.data.totalPages);
+    //         } else {
+    //             toast.error("Lỗi khi load dữ liệu");
+    //         }
+    //     } catch (error) {
+    //         toast.error("Loading...");
+    //     }
+    // };
+    const fetchList = async (page, limit, query = '') => {
         try {
-            const response = await axios.get(`${url}/api/product/listProduct?page=${page}&limit=${limit}`);
+            const response = await axios.get(`${url}/api/product/listProduct`, {
+                params: { page, limit, search: query }
+            });
             if (response.data.success) {
-                setList(response.data.data.products);
-                setTotalPages(response.data.data.totalPages);
+                setList(response.data.data.products || []);
+                setTotalPages(response.data.data.totalPages || 0);
             } else {
                 toast.error("Lỗi khi load dữ liệu");
             }
@@ -112,31 +125,31 @@ const ManageProduct = ({ url }) => {
     // Update sản phẩm
     const onSubmitEditProduct = async (event) => {
         event.preventDefault();
-        const {id,name,category,price,description,dateCreate} = data;
+        const { id, name, category, price, description, dateCreate } = data;
         const formData = new FormData();
         formData.append("name", name);
         formData.append("category", category);
         formData.append("price", price);
         formData.append("description", description);
         formData.append("dateCreate", dateCreate);
-        if(image){
+        if (image) {
             formData.append("image", image);
         }
         try {
             const response = await axios.put(`${url}/api/product/updateProduct/${id}`, formData);
-            if(response.data.success){
-                toast.success(response.data.message, {autoClose: 1500});
+            if (response.data.success) {
+                toast.success(response.data.message, { autoClose: 1500 });
                 await fetchList(currentPage, currentLimit);
                 setData({
-                    id:"",
-                    name:"",
-                    category:"",
-                    price:"",
-                    description:"",
+                    id: "",
+                    name: "",
+                    category: "",
+                    price: "",
+                    description: "",
                     dateCreate: "",
                 });
                 setImage(null);
-                
+
                 const modal = modalRef.current;
                 if (modal) {
                     const bootstrapModal = window.bootstrap.Modal.getInstance(modal);
@@ -144,13 +157,13 @@ const ManageProduct = ({ url }) => {
                         bootstrapModal.hide();
                     }
                 }
-                else{
-                    toast.error(response.data.message,{autoClose:1500});
+                else {
+                    toast.error(response.data.message, { autoClose: 1500 });
                 }
             }
         } catch (error) {
             console.error(error);
-            toast.error("Error updating product", {autoClose: 1500});
+            toast.error("Error updating product", { autoClose: 1500 });
         }
     }
     // Xóa sản phẩm
@@ -176,9 +189,9 @@ const ManageProduct = ({ url }) => {
     };
     // Sự kiện Onclick phân trang
     const handlePageClick = (event) => {
-       const selectedPage = event.selected + 1;
-       setCurrentPage(selectedPage);
-       fetchList(selectedPage, currentLimit);
+        const selectedPage = event.selected + 1;
+        setCurrentPage(selectedPage);
+        fetchList(selectedPage, currentLimit);
     };
     // Sự kiện hiển thị value để sửa
     const handleEditClick = (product) => {
@@ -193,32 +206,55 @@ const ManageProduct = ({ url }) => {
         });
         setSelectedCategory(product.category);
         setImage(null);
-       
+
     };
     // Sự kiên onclick xóa sản phẩm khi chọn lọc
     const handleCheckboxChange = (event, id) => {
-        if(event.target.checked){
-            setSelectedProduct([...selectedProduct,id]);
+        if (event.target.checked) {
+            setSelectedProduct([...selectedProduct, id]);
         }
-        else{
+        else {
             selectedProduct(selectedProduct.filter(productId => productId !== id));
         }
     }
     // Xóa sản phẩm (delete-multiple)
     const handleDeleteSelected = async () => {
         try {
-            const response = await axios.delete(`${url}/api/product/delete-multiple-product`,{data:{ids:selectedProduct}});
-            await fetchList(currentPage,currentLimit);
-            if(response.data.success){
-                setList((prevList)=> prevList.filter(item => !selectedProduct.includes(item._id)));
+            const response = await axios.delete(`${url}/api/product/delete-multiple-product`, { data: { ids: selectedProduct } });
+            await fetchList(currentPage, currentLimit);
+            if (response.data.success) {
+                setList((prevList) => prevList.filter(item => !selectedProduct.includes(item._id)));
                 setSelectedProduct([]);
-                toast.success(response.data.message, {autoClose: 1500});
+                toast.success(response.data.message, { autoClose: 1500 });
             }
         } catch (error) {
             console.error(error);
-            toast.error(response.data.message,{autoClose: 1500});
+            toast.error(response.data.message, { autoClose: 1500 });
         }
     }
+    // Tìm kiếm sản phẩm 
+    // const fetchSearchResults = async () => {
+    //     try {
+    //         const response = await axios.get(`${url}/api/product/search-products`,{search: query});
+    //         if(response.data.success){
+    //             setList(response.data.data);
+    //         }
+    //         else{
+    //             console.error("Error");
+    //         }
+    //     } catch (error) {
+    //         console.error("Error fetching search results:", error);
+    //     }
+    // }
+    const handleSearchChange = (e) => {
+        setSearchQuery(e.target.value);
+    };
+
+    const handleSearch = (e) => {
+        e.preventDefault();
+        fetchList(1, currentLimit, searchQuery);
+    };
+
 
     useEffect(() => {
         fetchList(currentPage, currentLimit);
@@ -253,7 +289,7 @@ const ManageProduct = ({ url }) => {
                     <hr />
                     <div className='model-body'>
                         <div className='model-tools'>
-                        <label>
+                            <label>
                                 Hiện thị
                                 <select onChange={handleSelectChange} value={itemsToShow}>
                                     <option value="5">5</option>
@@ -266,12 +302,14 @@ const ManageProduct = ({ url }) => {
                             </label>
                             <div className="search-container">
                                 <input className="checkbox" type="checkbox" />
-                                <div className="mainbox">
-                                    <div className="iconContainer">
-                                        <FontAwesomeIcon className='search' icon={faSearch} />
+                                <form action=""  onSubmit={handleSearch}>
+                                    <div className="mainbox">
+                                        <div className="iconContainer">
+                                            <FontAwesomeIcon className='search' icon={faSearch} />
+                                        </div>
+                                        <input className="search_input" placeholder="Search..." type="text" value={searchQuery} onChange={handleSearchChange} />
                                     </div>
-                                    <input className="search_input" placeholder="Search..." type="text" />
-                                </div>
+                                </form>
                             </div>
                         </div>
                         <table className="table text-center table-striped">
@@ -293,7 +331,7 @@ const ManageProduct = ({ url }) => {
                                 {list.slice(0, itemsToShow).map((item, index) => (
                                     <tr key={index} className='align-middle'>
                                         <th>
-                                            <input className='form-check-input' type="checkbox" onChange={(e)=> handleCheckboxChange(e,item._id)}/>
+                                            <input className='form-check-input' type="checkbox" onChange={(e) => handleCheckboxChange(e, item._id)} />
                                         </th>
                                         <th scope="row">{index + 1}</th>
                                         <td>{item.name}</td>
@@ -302,7 +340,7 @@ const ManageProduct = ({ url }) => {
                                         <td>{item.price}.000</td>
                                         <td>{item.description}</td>
                                         <td>
-                                            <p className='edit-icon' id={item.id} name={item.name} price={item.price} description={item.description} dateCreate={item.dateCreate} data-bs-toggle="modal" data-bs-target="#editCategoryModal" onClick={()=>handleEditClick(item)}><FontAwesomeIcon className='icon' icon={faPen} /></p>
+                                            <p className='edit-icon' id={item.id} name={item.name} price={item.price} description={item.description} dateCreate={item.dateCreate} data-bs-toggle="modal" data-bs-target="#editCategoryModal" onClick={() => handleEditClick(item)}><FontAwesomeIcon className='icon' icon={faPen} /></p>
                                             <p className='cusor' onClick={() => removeProduct(item._id)}><FontAwesomeIcon className='icon' icon={faTrashAlt} /></p>
                                         </td>
                                     </tr>
@@ -417,7 +455,7 @@ const ManageProduct = ({ url }) => {
                                     </div>
                                     <div className='form-group col-md-6 mb-3'>
                                         <label htmlFor="dateCreate">Ngày Tạo</label>
-                                        <input onChange={onChangeHandler} value={data.dateCreate} type="date" className='form-control' name='dateCreate' disabled/>
+                                        <input onChange={onChangeHandler} value={data.dateCreate} type="date" className='form-control' name='dateCreate' disabled />
                                     </div>
                                 </div>
                                 <div className="mb-3">

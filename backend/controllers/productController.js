@@ -33,34 +33,65 @@ const addProduct = async (req, res) => {
 }
 
 // Lấy danh sách sản phẩm (có thể lọc theo danh mục)
+// const getListProduct = async (req, res) => {
+//     try {
+//         if (req.query.page && req.query.limit) {
+//             let page = parseInt(req.query.page);
+//             let limit = parseInt(req.query.limit);
+
+//             const productData = await paginationProduct(page, limit);
+//             res.json({ success: true, data: productData });
+
+//         } else {
+//             let sortField = req.query.sortField || 'price';
+//             let sortType = req.query.sortType || 'desc';
+//             const category = req.query.category;
+//             let products;
+//             if (category && category !== 'All') {
+//                 products = await productModel.find({ category }).sort({ [sortField]: sortType });
+//             }
+//             else {
+//                 products = await productModel.find({}).sort({ [sortField]: sortType });
+//             }
+//             res.json({ success: true, data: products });
+//         }
+
+//     } catch (error) {
+//         console.log(error);
+//         res.json({ success: false, message: "Không lấy được danh sách sản phẩm!" });
+//     }
+// }
 const getListProduct = async (req, res) => {
     try {
-        if (req.query.page && req.query.limit) {
-            let page = parseInt(req.query.page);
-            let limit = parseInt(req.query.limit);
+        const { page, limit, search, sortType = 'asc'} = req.query;
 
-            const productData = await paginationProduct(page, limit);
-            res.json({ success: true, data: productData });
-
-        } else {
-            let sortField = req.query.sortField || 'price';
-            let sortType = req.query.sortType || 'desc';
-            const category = req.query.category;
-            let products;
-            if (category && category !== 'All') {
-                products = await productModel.find({ category }).sort({ [sortField]: sortType });
-            }
-            else {
-                products = await productModel.find({}).sort({ [sortField]: sortType });
-            }
-            res.json({ success: true, data: products });
+        let query = {};
+        if (search) {
+            query.name = { $regex: `.*${search}.*`, $options: 'i' };
         }
 
+        if (page && limit) {
+            let pageNum = parseInt(page);
+            let limitNum = parseInt(limit);
+
+            const totalProducts = await productModel.countDocuments(query);
+            const totalPages = Math.ceil(totalProducts / limitNum);
+            const products = await productModel.find(query)
+                .sort({ sortType })
+                .skip((pageNum - 1) * limitNum)
+                .limit(limitNum);
+
+            res.json({ success: true, data: { products, totalPages } });
+        } else {
+            const products = await productModel.find(query).sort({sortType });
+            res.json({ success: true, data: products });
+        }
     } catch (error) {
         console.log(error);
         res.json({ success: false, message: "Không lấy được danh sách sản phẩm!" });
     }
 }
+
 // Lấy sản phẩm theo mã Id
 const getByIdProduct = async (req, res) => {
     const products = await productModel.findOne({ _id: req.params.id });
@@ -243,6 +274,22 @@ const getTopSellingProductsAPI = async (req, res) => {
         res.status(500).json({ success: false, message: "Lỗi không load được dữ liệu" });
     }
 };
+// Search Product
+const searchProduct = async (req,res) => {
+    try {
+        var search = req.body.search;
+        var product_data = await productModel.find({ "name":{$regex: ".*" +search+ ".*",$options:'i'} });
+        if(product_data.length>0){
+            res.status(200).json({success: true, data: product_data});
+        }
+        else{
+            res.status(200).json({success:true,message:"Product Not Found"});
+        }
+    } catch (error) {
+        console.error(error);
+        res.status(400).json({success: false, message:"Error"});
+    }
+}
 
 
 
@@ -257,5 +304,6 @@ export {
     getProductByCategory,
     listProduct,
     getTopSellingProductsAPI,
-    getByIdProduct
+    getByIdProduct,
+    searchProduct
 };

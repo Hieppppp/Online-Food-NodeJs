@@ -2,6 +2,8 @@ import path from "path";
 import categoryModel from "../models/categoryModel.js";
 import { paginationCategory } from "../services/categoryServices.js";
 import fs from 'fs';
+import mongoose from "mongoose";
+import productModel from "../models/productModel.js";
 
 //thêm loại danh mục
 const addCategory = async(req,res)=>{
@@ -77,14 +79,41 @@ const updateCategory = async (req, res) => {
 
 //Xóa danh mục sản phẩm theo mã id
 const deleteCategory = async (req,res)=>{
+    const session = await mongoose.startSession();
+    session.startTransaction();
+
     try {
-        const category = await categoryModel.findById(req.body.id);
-        fs.unlink(`upload/${category.image}`,()=>{})
-        await categoryModel.findByIdAndDelete(req.body.id);
-        res.json({success:true,message:"Xóa danh mục thành công!"});
+        const category = await categoryModel.findById(req.body.id).session(session);
+
+        if (!category) {
+            await session.abortTransaction();
+            session.endSession();
+            return res.json({ success: false, message: "Danh mục không tồn tại!" });
+        }
+
+        // Xóa hình ảnh của danh mục nếu có
+        if (category.image) {
+            fs.unlink(`upload/${category.image}`, (err) => {
+                if (err) console.log(err);
+            });
+        }
+
+        // Xóa tất cả các sản phẩm liên quan đến danh mục này
+        await productModel.deleteMany({ category: req.body.id }).session(session);
+
+        // Xóa danh mục
+        await categoryModel.findByIdAndDelete(req.body.id).session(session);
+
+        await session.commitTransaction();
+        session.endSession();
+
+        res.json({ success: true, message: "Xóa danh mục thành công!" });
     } catch (error) {
+        await session.abortTransaction();
+        session.endSession();
+
         console.log(error);
-        res.json({success:false,message:"Error"});
+        res.json({ success: false, message: "Error" });
     }
 }
 //Xóa tất cả

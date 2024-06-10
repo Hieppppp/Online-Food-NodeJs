@@ -1,6 +1,6 @@
 import express from 'express';
 import multer from 'multer';
-import { addProduct, deleteMultipleProduct, deleteProduct, getByIdProduct, getListProduct, getProductByCategory, getProductCat, getTopSellingProductsAPI, listProduct, updateProduct } from '../controllers/productController.js';
+import { addProduct, deleteMultipleProduct, deleteProduct, getByIdProduct, getListProduct, getProductByCategory, getProductCat, getTopSellingProductsAPI, listProduct, searchProduct, updateProduct } from '../controllers/productController.js';
 
 const productRouter = express.Router();
 
@@ -33,6 +33,8 @@ productRouter.get("/listproductsearch",listProduct);
 productRouter.get("/top-selling-products",getTopSellingProductsAPI);
 // api get product by id
 productRouter.get("/getbyproductId/:id",getByIdProduct);
+// api search product
+productRouter.get("/search-products",searchProduct);
 
 
 
