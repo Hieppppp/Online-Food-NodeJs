@@ -100,7 +100,7 @@ const ManageProduct = ({ url }) => {
                 params: { page, limit, search: query }
             });
             if (response.data.success) {
-                setList(response.data.data.products || []);
+                setList(response.data.data.products || []);//Gọi setList để cập nhật state list với mảng sản phẩm từ phản hồi API 
                 setTotalPages(response.data.data.totalPages || 0);
             } else {
                 toast.error("Lỗi khi load dữ liệu");

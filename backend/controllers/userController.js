@@ -6,7 +6,17 @@ import dotenv from 'dotenv';
 import userModel from '../models/userModel.js';
 
 dotenv.config();
-// Get user
+// Get all user 
+const getAllUser = async (req, res) => {
+    try {
+        const users = await userModel.find({});
+        res.json({success: true, data: users});
+    } catch (error) {
+        console.error(error);
+        res.json({success: false, message:"Error"});
+    }
+}
+// Get user by id
 const getUser = async (req, res) => {
     try {
         if (!req.user) {
@@ -204,4 +214,4 @@ const sendResetPasswordToken = async (email, resetToken) => {
 }
 
 
-export {loginUser,resgisterUser,resetPassword,updatePassword,getUser}
+export {loginUser,resgisterUser,resetPassword,updatePassword,getUser,getAllUser}

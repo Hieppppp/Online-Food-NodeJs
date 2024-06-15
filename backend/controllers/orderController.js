@@ -1,7 +1,10 @@
 import Stripe from 'stripe';
 import dotenv from 'dotenv';
 import orderModel from '../models/orderModel.js';
-import userModel from '../models/userModel.js'
+import userModel from '../models/userModel.js';
+import { paginationOrder } from '../services/orderSevices.js';
+import fs from 'fs';
+import path from 'path';
 
 // cấu hình biến môi trường từ file .env
 dotenv.config();
@@ -96,8 +99,18 @@ const userOrders = async (req,res) => {
 //Hiển thị danh sách đơn hàng phía admin
 const listOrders = async (req,res) => {
     try {
-        const orders = await orderModel.find({});
-        res.json({success:true,data:orders});
+        if (req.query.page && req.query.limit){
+            let page = parseInt(req.query.page);
+            let limit = parseInt(req.query.limit);
+
+            const orderData = await paginationOrder(page, limit);
+            res.json({success: true, data: orderData});
+        }
+        else {
+            const orders = await orderModel.find({});
+            res.json({success:true,data:orders});
+        }
+        
     } catch (error) {
         console.log(error);
         res.json({success:false,message:"Error"});
@@ -136,6 +149,11 @@ const getOrderDetailByUserId = async (req, res) => {
         res.json({success:false, message:"Error"});
     }
 }
+
+//Export PDF
+// const generatePdf = async (req, res, next) => {
+//     const html = fs.readFileSync(path.join(__dirname, '../'))
+// }
 
 
 
